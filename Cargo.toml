@@ -5,4 +5,5 @@ members = [
 ]
 
 [workspace.dependencies]
+tokio = "1.21.2"
 
