@@ -31,7 +31,7 @@ impl CA {
 
 #[cfg(test)]
 mod test {
-    use crate::ca::CA;
+    use super::CA;
 
     #[test]
     fn create_ca() {
