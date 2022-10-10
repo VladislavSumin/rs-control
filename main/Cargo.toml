@@ -13,3 +13,4 @@ tracing-subscriber = { workspace = true }
 hyper = { workspace = true, features = ["full"] }
 axum = { workspace = true }
 axum-server = { workspace = true, features = ["tls-rustls"] }
+openssl = { workspace = true }

@@ -3,6 +3,7 @@ use tracing::info;
 
 mod logger;
 mod web_server;
+mod ca;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
