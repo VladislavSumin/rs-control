@@ -10,4 +10,6 @@ tracing = "0.1.37"
 tracing-appender = "0.2.2"
 tracing-subscriber = "0.3.16"
 hyper = "0.14.20"
+axum = "0.6.0-rc.2"
+axum-server = "0.4.2"
 

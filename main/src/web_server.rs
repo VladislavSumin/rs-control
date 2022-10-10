@@ -21,6 +21,6 @@ pub async fn run() -> Result<(), Box<dyn Error>> {
         }
     });
 
-    hyper::Server::bind(&addr).serve(make_svc).await?;
+    axum::Server::bind(&addr).serve(make_svc).await?;
     Ok(())
 }
