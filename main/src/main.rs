@@ -5,7 +5,7 @@ mod logger;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    logger::init();
+    let _guard = logger::init();
     info!("Starting server");
     Ok(())
 }
