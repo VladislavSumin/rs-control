@@ -2,6 +2,7 @@
 
 members = [
     "main",
+    "main_client"
 ]
 
 [workspace.dependencies]
@@ -13,4 +14,4 @@ hyper = "0.14.20"
 axum = "0.6.0-rc.2"
 axum-server = "0.4.2"
 openssl = "0.10.42"
-
+yew = "0.19.3"

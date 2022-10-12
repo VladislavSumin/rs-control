@@ -3,6 +3,8 @@
 
 /logs/
 
+/main_client/dist/
+
 **/*.iml
 
 /Cargo.lock
