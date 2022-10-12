@@ -1,7 +1,7 @@
 [workspace]
 
 members = [
-    "main",
+    "main_sever",
     "main_client"
 ]
 
