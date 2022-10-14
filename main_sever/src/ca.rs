@@ -10,8 +10,8 @@ use std::fmt::{Debug, Display, Formatter};
 use std::path::Path;
 use crate::ca::CAError::{IOError, OpenSslError};
 
-const CERT_SUB_PATH: &str = "ca.pem";
-const KEY_SUB_PATH: &str = "ca.der";
+const CERT_SUB_PATH: &str = "ca.crt";
+const KEY_SUB_PATH: &str = "ca.key";
 
 #[derive(Debug)]
 pub struct CA {
@@ -64,7 +64,7 @@ impl CA {
     pub fn load(dir: impl AsRef<Path>) -> Result<Self, CAError> {
         let dir = dir.as_ref();
         let cert = X509::from_pem(&fs::read(dir.join(CERT_SUB_PATH))?)?;
-        let key = PKey::private_key_from_der(&fs::read(dir.join(KEY_SUB_PATH))?)?;
+        let key = PKey::private_key_from_pem(&fs::read(dir.join(KEY_SUB_PATH))?)?;
 
         let ca = CA { cert, key };
 
@@ -75,7 +75,7 @@ impl CA {
         let dir = dir.as_ref();
 
         fs::write(dir.join(CERT_SUB_PATH), self.cert.to_pem()?)?;
-        fs::write(dir.join(KEY_SUB_PATH), self.key.private_key_to_der()?)?;
+        fs::write(dir.join(KEY_SUB_PATH), self.key.private_key_to_pem_pkcs8()?)?;
 
         Ok(())
     }
