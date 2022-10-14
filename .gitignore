@@ -2,6 +2,7 @@
 /target/
 
 /logs/
+/ssl/
 
 /main_client/dist/
 
