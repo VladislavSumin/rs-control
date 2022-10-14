@@ -5,11 +5,13 @@ use openssl::pkey::{PKey, Private, Public};
 use openssl::rsa::Rsa;
 use openssl::x509::{X509Extension, X509Name, X509Req, X509};
 use std::error::Error;
-use std::fs;
+use std::{fs, io};
+use std::fmt::{Debug, Display, Formatter};
 use std::path::Path;
+use crate::ca::CAError::{IOError, OpenSslError};
 
-const CERT_SUB_PATH: &str = "cert.pem";
-const KEY_SUB_PATH: &str = "key.der";
+const CERT_SUB_PATH: &str = "ca.pem";
+const KEY_SUB_PATH: &str = "ca.der";
 
 #[derive(Debug)]
 pub struct CA {
@@ -17,8 +19,34 @@ pub struct CA {
     key: PKey<Private>,
 }
 
+#[derive(Debug)]
+pub enum CAError {
+    OpenSslError(ErrorStack),
+    IOError(io::Error),
+}
+
+impl From<ErrorStack> for CAError {
+    fn from(es: ErrorStack) -> Self {
+        OpenSslError(es)
+    }
+}
+
+impl From<io::Error> for CAError {
+    fn from(e: io::Error) -> Self {
+        IOError(e)
+    }
+}
+
+impl Display for CAError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(self, f)
+    }
+}
+
+impl Error for CAError {}
+
 impl CA {
-    pub fn new(days_valid: u32) -> Result<Self, ErrorStack> {
+    pub fn new(days_valid: u32) -> Result<Self, CAError> {
         let (private_key, public_key) = generate_key()?;
 
         let mut builder = X509::builder()?;
@@ -33,7 +61,7 @@ impl CA {
         Ok(ca)
     }
 
-    pub fn load(dir: impl AsRef<Path>) -> Result<Self, Box<dyn Error>> {
+    pub fn load(dir: impl AsRef<Path>) -> Result<Self, CAError> {
         let dir = dir.as_ref();
         let cert = X509::from_pem(&fs::read(dir.join(CERT_SUB_PATH))?)?;
         let key = PKey::private_key_from_der(&fs::read(dir.join(KEY_SUB_PATH))?)?;
@@ -43,7 +71,7 @@ impl CA {
         Ok(ca)
     }
 
-    pub fn save(&self, dir: impl AsRef<Path>) -> Result<(), Box<dyn Error>> {
+    pub fn save(&self, dir: impl AsRef<Path>) -> Result<(), CAError> {
         let dir = dir.as_ref();
 
         fs::write(dir.join(CERT_SUB_PATH), self.cert.to_pem()?)?;
@@ -53,11 +81,11 @@ impl CA {
     }
 }
 
-fn generate_csr(dnsname: &str) -> Result<(X509Req, PKey<Private>), ErrorStack> {
+fn generate_csr(dns_name: &str) -> Result<(X509Req, PKey<Private>), ErrorStack> {
     let mut req = X509Req::builder().unwrap();
 
     let mut name_builder = X509Name::builder().unwrap();
-    name_builder.append_entry_by_text("CN", dnsname).unwrap();
+    name_builder.append_entry_by_text("CN", dns_name).unwrap();
     req.set_subject_name(&name_builder.build()).unwrap();
 
     let mut extensions = openssl::stack::Stack::new()?;
@@ -65,7 +93,7 @@ fn generate_csr(dnsname: &str) -> Result<(X509Req, PKey<Private>), ErrorStack> {
         None,
         Some(&req.x509v3_context(None)),
         "subjectAltName",
-        &format!("DNS:{}", dnsname),
+        &format!("DNS:{}", dns_name),
     )?)?;
     req.add_extensions(&extensions)?;
     req.set_version(2)?;
