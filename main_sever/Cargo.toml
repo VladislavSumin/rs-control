@@ -6,6 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+futures-core = { workspace = true }
+futures-util = { workspace = true }
+futures-channel = { workspace = true }
+futures-sink = { workspace = true }
+futures-task = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 tracing = { workspace = true }
 tracing-appender = { workspace = true }

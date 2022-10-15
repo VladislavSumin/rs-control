@@ -6,6 +6,12 @@ members = [
 ]
 
 [workspace.dependencies]
+futures-core = "0.3.24"
+futures-util = "0.3.24"
+futures-channel = "0.3.24"
+futures-sink = "0.3.24"
+futures-task = "0.3.24"
+
 tokio = "1.21.2"
 tracing = "0.1.37"
 tracing-appender = "0.2.2"
