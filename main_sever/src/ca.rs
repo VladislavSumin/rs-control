@@ -5,13 +5,12 @@ use openssl::pkey::{PKey, Private, Public};
 use openssl::rsa::Rsa;
 use openssl::x509::{X509Extension, X509Name, X509Req, X509};
 use std::error::Error;
-use std::{fs, io};
+use std::io;
 use std::fmt::{Debug, Display, Formatter};
 use std::path::Path;
+use futures_util::TryFutureExt;
+use tokio::try_join;
 use crate::ca::CAError::{IOError, OpenSslError};
-
-const CERT_SUB_PATH: &str = "ca.crt";
-const KEY_SUB_PATH: &str = "ca.key";
 
 #[derive(Debug)]
 pub struct CA {
@@ -61,21 +60,25 @@ impl CA {
         Ok(ca)
     }
 
-    pub fn load(dir: impl AsRef<Path>) -> Result<Self, CAError> {
-        let dir = dir.as_ref();
-        let cert = X509::from_pem(&fs::read(dir.join(CERT_SUB_PATH))?)?;
-        let key = PKey::private_key_from_pem(&fs::read(dir.join(KEY_SUB_PATH))?)?;
+    pub async fn load(cert: impl AsRef<Path>, key: impl AsRef<Path>) -> Result<Self, CAError> {
+        let cert = tokio::fs::read(cert.as_ref()).err_into()
+            .and_then(|cert| async move { X509::from_pem(&cert).map_err(|e| { CAError::from(e) }) });
+
+        let key = tokio::fs::read(key.as_ref()).err_into()
+            .and_then(|key| async move { PKey::private_key_from_pem(&key).map_err(|e| { CAError::from(e) }) });
+
+        let (cert, key) = try_join!(cert, key)?;
 
         let ca = CA { cert, key };
 
         Ok(ca)
     }
 
-    pub fn save(&self, dir: impl AsRef<Path>) -> Result<(), CAError> {
-        let dir = dir.as_ref();
+    pub async fn save(&self, cert: impl AsRef<Path>, key: impl AsRef<Path>) -> Result<(), CAError> {
+        let cert = tokio::fs::write(cert.as_ref(), self.cert.to_pem()?).err_into::<CAError>();
+        let key = tokio::fs::write(key.as_ref(), self.key.private_key_to_pem_pkcs8()?).err_into();
 
-        fs::write(dir.join(CERT_SUB_PATH), self.cert.to_pem()?)?;
-        fs::write(dir.join(KEY_SUB_PATH), self.key.private_key_to_pem_pkcs8()?)?;
+        try_join!(cert, key)?;
 
         Ok(())
     }
@@ -123,14 +126,18 @@ mod test {
         println!("CA: {:#?}", ca);
     }
 
-    #[test]
-    fn save_load_ca() {
+    #[tokio::test]
+    async fn save_load_ca() {
         const TEST_FOLDER: &str = "./test/ca/save_load_ca/";
+
+        let cert_path = format!("{}/ca.crt", TEST_FOLDER);
+        let key_path = format!("{}/ca.key", TEST_FOLDER);
+
         let _ = fs::remove_dir_all(TEST_FOLDER);
         fs::create_dir_all(TEST_FOLDER).unwrap();
         let original_ca = CA::new(1).unwrap();
-        original_ca.save(TEST_FOLDER).unwrap();
-        let loaded_ca = CA::load(TEST_FOLDER).unwrap();
+        original_ca.save(&cert_path, &key_path).await.unwrap();
+        let loaded_ca = CA::load(&cert_path, &key_path).await.unwrap();
         assert_eq!(original_ca.cert, loaded_ca.cert);
         fs::remove_dir_all(TEST_FOLDER).unwrap();
     }
