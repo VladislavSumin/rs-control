@@ -62,15 +62,13 @@ impl CA {
 
     pub async fn load(cert: impl AsRef<Path>, key: impl AsRef<Path>) -> Result<Self, CAError> {
         let cert = tokio::fs::read(cert.as_ref()).err_into()
-            .and_then(|cert| async move { X509::from_pem(&cert).map_err(|e| { CAError::from(e) }) });
+            .and_then(|cert| async move { X509::from_pem(&cert).map_err(CAError::from) });
 
         let key = tokio::fs::read(key.as_ref()).err_into()
-            .and_then(|key| async move { PKey::private_key_from_pem(&key).map_err(|e| { CAError::from(e) }) });
+            .and_then(|key| async move { PKey::private_key_from_pem(&key).map_err(CAError::from) });
 
         let (cert, key) = try_join!(cert, key)?;
-
         let ca = CA { cert, key };
-
         Ok(ca)
     }
 
